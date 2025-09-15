@@ -14,7 +14,7 @@ def load_file(file_path, file_type):
     documents = loader.load()
     return split_documents(documents)
 
-def split_documents(documents, chunk_size=1500, overlap=100):
+def split_documents(documents, chunk_size=1000, overlap=150):
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=chunk_size,
         chunk_overlap=overlap
