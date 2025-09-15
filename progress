@@ -1,0 +1,70 @@
+Overview:
+An interactive Q&A application using Streamlit and LangChain, powered by AWS Bedrock’s Claude model. The system supports two modes of answering questions:
+
+1. RAG (Retrieval-Augmented Generation) Mode
+2. Chat with Memory Mode
+
+
+
+
+Architecture:
+
+
+                                 ┌─────────────────────┐
+                          │       👤 User        │
+                          │   (Streamlit Input) │
+                          └───────────┬─────────┘
+                                      │
+                                      ▼
+                          ┌─────────────────────┐
+                          │  Check Query Type   │
+                          │ (keywords: bedrock, │
+                          │  langchain, faiss)  │
+                          └───────────┬─────────┘
+                          ┌───────────┴─────────┐
+                          ▼                     ▼
+              ┌─────────────────────┐   ┌───────────────────────┐
+              │     RAG Mode        │   │     Chat Mode         │
+              │ (Keyword detected)  │   │ (Default fallback)    │
+              └───────────┬─────────┘   └───────────┬───────────┘
+                          │                         │
+         ┌────────────────┴────────────┐   ┌────────┴────────────┐
+         ▼                             ▼   ▼                     ▼
+┌────────────────────┐     ┌──────────────────────┐   ┌─────────────────────┐
+│   FAISS Vector DB  │     │ Retriever            │   │ Conversation Memory │
+│  (Stored Docs)     │◄────┤ (fetch relevant docs)│   │ (Previous messages) │
+└────────────────────┘     └───────────┬──────────┘   └───────────┬─────────┘
+                                       │                          │
+                                       ▼                          ▼
+                             ┌──────────────────────┐    ┌─────────────────────┐
+                             │ Claude (via Bedrock) │    │ Prompt Template     │
+                             │   + Retrieval Chain  │    │ (history + question)│
+                             └───────────┬──────────┘    └───────────┬─────────┘
+                                         │                          │
+                                         └───────────┬──────────────┘
+                                                     ▼
+                                          ┌─────────────────────┐
+                                          │      Answer         │
+                                          │ (Displayed in UI)   │
+                                          └─────────────────────┘
+
+
+1.Vector Database Setup
+     Loaded documents into FAISS for efficient semantic search.
+
+2.Created a retriever (db.as_retriever()) to fetch relevant document chunks.
+
+3.LLM Integration
+    Integrated Anthropic Claude (via Bedrock) as the main chat model using ChatBedrock.
+    Configured RetrievalQA chain so the LLM can answer with knowledge retrieved from FAISS.
+
+4.Query Handling Logic
+
+5.Implemented keyword-based routing:
+
+6.Streamlit Application
+   Running the workflow inside a Streamlit app for interactive Q&A.
+   Currently supports both knowledge-grounded answers (via RAG) and conversational responses.
+
+
+   
