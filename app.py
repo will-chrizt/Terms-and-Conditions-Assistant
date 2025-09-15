@@ -1,5 +1,6 @@
 import os
 os.environ["USER_AGENT"] = "LegalQAApp/1.0 (+https://yourdomain.com)"
+
 import streamlit as st
 from langchain_aws import BedrockEmbeddings, ChatBedrock
 from config import AWS_REGION, EMBED_MODEL, LLM_MODEL
@@ -39,6 +40,8 @@ def main():
                     f.write(uploaded_file.getbuffer())
 
                 docs = load_file(temp_path, file_ext)
+                for d in docs:
+                    d.metadata["source"] = uploaded_file.name
                 all_docs.extend(docs)
 
             st.success(f"✅ Loaded {len(all_docs)} chunks from {len(uploaded_files)} files")
@@ -49,6 +52,8 @@ def main():
             all_urls = [u.strip() for u in urls.splitlines() if u.strip()]
             for url in all_urls:
                 docs = load_from_url(url)
+                for d in docs:
+                    d.metadata["source"] = url
                 all_docs.extend(docs)
                 sources.append(url)
             st.success(f"✅ Loaded {len(all_docs)} chunks from {len(all_urls)} URL(s)")
@@ -61,8 +66,7 @@ def main():
             summary_prompt = """Summarize the following Terms & Conditions in plain English.
             Focus on: user rights, restrictions, payments, refunds, account termination, and data sharing.
             Keep it under 10 bullet points."""
-
-            chunks_text = "\n".join([doc.page_content for doc in all_docs[:5]])  # first few chunks
+            chunks_text = "\n".join([doc.page_content for doc in all_docs[:15]])  # take more chunks
             summary = llm.invoke(summary_prompt + "\n\n" + chunks_text)
             st.write(summary.content)
 
@@ -84,7 +88,9 @@ def main():
 
             st.subheader("Citations")
             for doc in result["source_documents"]:
-                st.markdown(f"- `{doc.page_content[:200]}...` (Page {doc.metadata.get('page', '?')})")
+                st.markdown(
+                    f"- `{doc.page_content[:200]}...` (Source: {doc.metadata.get('source', '?')}, Page {doc.metadata.get('page', '?')})"
+                )
 
             # Highlight important terms in PDFs
             keywords = ["refund", "liability", "terminate", "data", "privacy", "fees"]
@@ -118,13 +124,12 @@ def main():
             where a user might unintentionally or intentionally break the policy. 
             Present the output in a Markdown table with the following columns:
             | Scenario | Violated Policy/Term | Possible Consequence |
+            Keep descriptions concise and clear."""
+            chunks_text = "\n".join([doc.page_content for doc in all_docs[:15]])
+            st.session_state["violations"] = llm.invoke(violation_prompt + "\n\n" + chunks_text).content
 
-            Keep descriptions concise and clear.
-            """
-            chunks_text = "\n".join([doc.page_content for doc in all_docs[:5]])
-            scenarios = llm.invoke(violation_prompt + "\n\n" + chunks_text)
-
-            st.markdown(scenarios.content)
+        if "violations" in st.session_state:
+            st.markdown(st.session_state["violations"])
 
         # --------------------------
         # 7. Fairness Checker
@@ -135,41 +140,54 @@ def main():
             that may be considered unfair, one-sided, or risky for the user.
             Present the findings in a Markdown table with columns:
             | Clause (summarized) | Why it may be unfair | Risk Level (High/Medium/Low) |
-
             Be concise and objective. Highlight clauses such as unilateral changes, no refunds, 
-            excessive liability limitations, or forced arbitration.
-            """
-            chunks_text = "\n".join([doc.page_content for doc in all_docs[:5]])
-            fairness_analysis = llm.invoke(fairness_prompt + "\n\n" + chunks_text)
+            excessive liability limitations, or forced arbitration."""
+            chunks_text = "\n".join([doc.page_content for doc in all_docs[:15]])
+            st.session_state["fairness"] = llm.invoke(fairness_prompt + "\n\n" + chunks_text).content
 
-            st.markdown(fairness_analysis.content)
+        if "fairness" in st.session_state:
+            st.markdown(st.session_state["fairness"])
 
         # --------------------------
         # 8. Compare Multiple Documents (Highlight Differences)
         # --------------------------
         if len(sources) > 1:
             st.subheader("📑 Differences Between Documents")
+            sections = [
+                "Refund and cancellation policy",
+                "Data collection and sharing",
+                "Account termination conditions",
+                "User obligations",
+                "Fees or penalties"
+            ]
+
             if st.button("Highlight Differences"):
-                compare_prompt = f"""Compare the following Terms & Conditions documents and highlight key differences.
-                Sources: {", ".join(sources)}.
-                
-                Focus on:
-                - Refund and cancellation policy
-                - Data collection and sharing
-                - Account termination conditions
-                - User obligations
-                - Fees or penalties
+                section_comparisons = {}
+                for sec in sections:
+                    sec_texts = []
+                    for src in sources:
+                        src_docs = [doc.page_content for doc in all_docs if doc.metadata.get("source") == src]
+                        src_text = "\n".join(src_docs[:20])
+                        sec_texts.append(f"Source: {src}\n{src_text}")
 
-                Present the output in a Markdown table with columns:
-                | Aspect | { " | ".join(sources) } | Key Difference Summary |
-                """
-                chunks_text = "\n\n---\n\n".join(
-                    [f"Source: {src}\n\n" + "\n".join([doc.page_content for doc in all_docs[:3]]) 
-                     for src in sources]
-                )
-                comparison = llm.invoke(compare_prompt + "\n\n" + chunks_text)
+                    section_prompt = f"""
+Compare the following section: "{sec}" across documents and highlight key differences.
+Focus on policy wording and implications for the user.
 
-                st.markdown(comparison.content)
+{"\n\n---\n\n".join(sec_texts)}
+
+Present the output in a Markdown table with columns:
+| Aspect | {" | ".join(sources)} | Key Difference Summary |
+"""
+                    comparison_result = llm.invoke(section_prompt).content
+                    section_comparisons[sec] = comparison_result
+
+                st.session_state["comparison_by_section"] = section_comparisons
+
+            if "comparison_by_section" in st.session_state:
+                for sec, comp in st.session_state["comparison_by_section"].items():
+                    with st.expander(f"📄 {sec} Differences", expanded=False):
+                        st.markdown(comp)
 
     # --------------------------
     # Cleanup
