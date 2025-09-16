@@ -1,0 +1,74 @@
+                            +------------------------+
+                            |   User Inputs URL /    |
+                            |   Uploads Document     |
+                            +-----------+------------+
+                                        |
+                                        v
+                            +------------------------+
+                            |  Document Loader       |
+                            |  (PyPDFLoader /        |
+                            |   WebBaseLoader /      |
+                            |   TextLoader)          |
+                            |  Splits doc into chunks|
+                            +-----------+------------+
+                                        |
+                                        v
+                            +------------------------+
+                            |  Embeddings Generator  |
+                            |  (BedrockEmbeddings)   |
+                            |  Converts chunks into  |
+                            |  vector embeddings     |
+                            +-----------+------------+
+                                        |
+                                        v
+                            +------------------------+
+                            |  FAISS Vector Store    |
+                            |  Builds / loads index  |
+                            +-----------+------------+
+                                        |
+                                        v
+                            +------------------------+
+                            |  Retriever (RAG)      |
+                            |  Fetches top-k chunks  |
+                            +-----------+------------+
+                                        |
+                                        v
+                            +------------------------+
+                            |  Dynamic Parameter     |
+                            |  Detection (LLM)       |
+                            +-----------+------------+
+                                        |
+      +----------------+----------------+----------------+----------------+
+      |                |                |                |                |
+      v                v                v                v                v
++------------+   +------------+   +------------+   +------------+   +------------+
+| Summary    |   | QA / User  |   | Comparison |   | Risk      |   | Violations |
+| Module     |   | Questions  |   | Module     |   | Module    |   | Module     |
+| Auto-detect|   | Answers    |   | Detects   |   | Detects   |   | Generates  |
+| main       |   | using      |   | top sections|  | risky     |   | hypothetical|
+| points     |   | retriever  |   | from docs  |   | clauses   |   | scenarios  |
++-----+------+   +-----+------+   +-----+------+   +-----+------+   +-----+------+
+      |                |                |                |                |
+      +----------------+----------------+----------------+----------------+
+                                        |
+                                        v
+                            +------------------------+
+                            |   LLM / RAG Chains     |
+                            |  Processes fetched     |
+                            |  chunks + parameters   |
+                            |                        |
+                            | - Generates summaries  |
+                            | - Comparison tables    |
+                            | - Risk levels          |
+                            | - Hypothetical cases   |
+                            +-----------+------------+
+                                        |
+                                        v
+                            +------------------------+
+                            |   Streamlit UI         |
+                            |   Displays results:    |
+                            |   - Summary            |
+                            |   - QA                 |
+                            |   - Comparison         |
+                            |   - Risk / Violations  |
+                            +------------------------+
