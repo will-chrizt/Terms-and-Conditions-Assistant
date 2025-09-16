@@ -1,10 +1,20 @@
 from langchain.prompts import PromptTemplate
 from langchain.chains import RetrievalQA
 
-def build_qa_chain(llm, retriever):
-    # T&C focused prompt
-    prompt_template = PromptTemplate(
-        template="""You are a helpful legal assistant that explains Terms & Conditions in simple language. 
+def build_qa_chain(llm, retriever, task="qa"):
+    """
+    Builds a RetrievalQA chain for a given task.
+    
+    Args:
+        llm: Your LLM instance (e.g., ChatBedrock)
+        retriever: Vector store retriever (RAG)
+        task: Type of task: "qa", "risk", "fairness", "hypothetical", "summary"
+    Returns:
+        RetrievalQA chain
+    """
+    # Define task-specific prompts
+    prompts = {
+        "qa": """You are a helpful legal assistant that explains Terms & Conditions in simple language. 
 Always give clear, concise answers and highlight important rules that affect the user.
 
 If the context does not contain the answer, say:
@@ -20,6 +30,46 @@ Context: {context}
 Question: {question}
 
 Answer:""",
+        
+        "risk": """You are analyzing Terms & Conditions to identify risky clauses. 
+Classify each clause into High, Medium, or Low risk for the user.
+Include a short explanation for each risk.
+
+Context: {context}
+
+Task: Identify risk levels for the user.
+
+Answer:""",
+        
+        "fairness": """You are analyzing Terms & Conditions to find clauses that may be unfair or one-sided. 
+Explain why each clause may be risky and provide a risk level.
+
+Context: {context}
+
+Task: Identify unfair clauses.
+
+Answer:""",
+        
+        "hypothetical": """You are creating hypothetical scenarios where users might violate the Terms & Conditions. 
+Provide 5 realistic scenarios with consequences.
+
+Context: {context}
+
+Task: Generate scenarios.
+
+Answer:""",
+        
+        "summary": """Summarize the following Terms & Conditions in plain English.
+Focus on key points: user rights, restrictions, payments, refunds, account termination, and data sharing.
+Keep it concise.
+
+Context: {context}
+
+Answer:"""
+    }
+
+    prompt_template = PromptTemplate(
+        template=prompts.get(task, prompts["qa"]),
         input_variables=["context", "question"]
     )
 
