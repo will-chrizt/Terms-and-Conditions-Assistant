@@ -1,0 +1,105 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tc-analyzer-deployment
+  namespace: tc-analyzer
+  labels:
+    app: tc-analyzer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tc-analyzer
+  template:
+    metadata:
+      labels:
+        app: tc-analyzer
+    spec:
+      containers:
+      - name: tc-analyzer
+        image: willchrist/tc-assistant:1.1
+        ports:
+        - containerPort: 8501
+          name: http
+        env:
+        # Environment variables from ConfigMap
+        - name: AWS_REGION
+          valueFrom:
+            configMapKeyRef:
+              name: tc-analyzer-config
+              key: AWS_REGION
+        - name: AWS_REGION_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: tc-analyzer-config
+              key: AWS_REGION
+        - name: EMBED_MODEL
+          valueFrom:
+            configMapKeyRef:
+              name: tc-analyzer-config
+              key: EMBED_MODEL
+        - name: LLM_MODEL
+          valueFrom:
+            configMapKeyRef:
+              name: tc-analyzer-config
+              key: LLM_MODEL
+        - name: USER_AGENT
+          valueFrom:
+            configMapKeyRef:
+              name: tc-analyzer-config
+              key: USER_AGENT
+        - name: STREAMLIT_SERVER_HEADLESS
+          valueFrom:
+            configMapKeyRef:
+              name: tc-analyzer-config
+              key: STREAMLIT_SERVER_HEADLESS
+        - name: STREAMLIT_SERVER_ENABLE_CORS
+          valueFrom:
+            configMapKeyRef:
+              name: tc-analyzer-config
+              key: STREAMLIT_SERVER_ENABLE_CORS
+        - name: STREAMLIT_SERVER_ENABLE_XSRF_PROTECTION
+          valueFrom:
+            configMapKeyRef:
+              name: tc-analyzer-config
+              key: STREAMLIT_SERVER_ENABLE_XSRF_PROTECTION
+        # AWS credentials from Secret
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: tc-analyzer-secret
+              key: AWS_ACCESS_KEY_ID
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: tc-analyzer-secret
+              key: AWS_SECRET_ACCESS_KEY
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1"
+        livenessProbe:
+          httpGet:
+            path: /_stcore/health
+            port: 8501
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /_stcore/health
+            port: 8501
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+        volumeMounts:
+        - name: faiss-storage
+          mountPath: /app/faiss_indexes
+      volumes:
+      - name: faiss-storage
+        persistentVolumeClaim:
+          claimName: faiss-storage-pvc
+      restartPolicy: Always
