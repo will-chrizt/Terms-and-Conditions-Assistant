@@ -1,4 +1,4 @@
-**Technologies used
+**Technologies used**
 
 Core Framework & UI
 
