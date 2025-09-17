@@ -1,5 +1,4 @@
-AI project
-
+**Technologies used
 
 Core Framework & UI
 
