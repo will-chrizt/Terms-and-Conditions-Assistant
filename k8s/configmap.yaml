@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tc-analyzer-config
+  namespace: tc-analyzer
+data:
+  AWS_REGION: "us-east-1"
+  EMBED_MODEL: "amazon.titan-embed-text-v2:0"
+  LLM_MODEL: "anthropic.claude-3-5-sonnet-20240620-v1:0"
+  USER_AGENT: "LegalQAApp/1.0 (+https://yourdomain.com)"
+  STREAMLIT_SERVER_HEADLESS: "true"
+  STREAMLIT_SERVER_ENABLE_CORS: "false"
+  STREAMLIT_SERVER_ENABLE_XSRF_PROTECTION: "true"
