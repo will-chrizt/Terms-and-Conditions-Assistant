@@ -8,7 +8,7 @@ def show_hypothetical_violations(llm, vector_store):
     if st.button("✨ Generate Scenarios"):
         # Retrieve relevant docs from the vector store
         retriever = vector_store.as_retriever(search_kwargs={"k": 15})
-        docs = retriever.get_relevant_documents("dummy")  # just fetch top docs
+        docs = retriever.get_relevant_documents("terms")  # just fetch top docs
 
         chunks_text = "\n".join([doc.page_content for doc in docs])
         violation_prompt = """Based on the following Terms & Conditions, create 5 realistic hypothetical situations 
